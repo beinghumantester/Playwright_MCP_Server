@@ -1,9 +1,0 @@
-{
-  "servers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/test"],
-      "type": "stdio"
-    }
-  }
-}
