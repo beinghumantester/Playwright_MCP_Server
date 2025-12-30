@@ -1,280 +1,251 @@
-````md
-# Playwright MCP Test Agents (Experimental)
+# Playwright MCP Test Agents – A Practical Guide
 
-This repository demonstrates an **agent-driven testing workflow** using **Playwright Test Agents** powered by **MCP (Model Context Protocol)**.
+This repository demonstrates how to use **Playwright Test Agents** with **MCP (Model Context Protocol)** to streamline testing workflows and reduce repetitive work.
 
-The objective is not to replace testers, but to reduce repetitive cognitive effort involved in:
-- initial test planning
-- exploratory navigation
-- test skeleton generation
-- fixing obvious automation failures
-
-Human judgment remains essential for deciding **what to test, what to automate, and what actually matters**.
+The goal isn't to replace testers—it's about letting AI handle tedious exploration, test plan drafting, skeleton generation, and fixing obvious issues, while humans focus on what actually requires judgment: deciding what to test, what to automate, and what matters.
 
 ---
 
-## Disclaimer
+## This is Experimental
 
-This project is **experimental**.
+Test agents work through prompts and aren't deterministic. Quality depends on prompt clarity, scope definition, and context provided. Agents assist but don't guarantee perfection.
 
-- Test agents are prompt-driven and non-deterministic
-- Output quality depends heavily on:
-  - prompt clarity
-  - scope definition
-  - provided context (requirements, seed tests, POMs)
-- Agents assist; they do not guarantee correctness or completeness
-
-If you expect “one prompt → perfect automation”, this repository will disappoint you.
+Expecting one prompt to deliver perfect automation will lead to disappointment.
 
 ---
 
 ## What Are Playwright Test Agents?
 
-Playwright Test Agents are **instruction-based agent modes** that combine:
-- a Large Language Model (LLM)
-- Playwright browser automation
+Playwright Test Agents combine:
+- A Large Language Model (LLM) 
+- Playwright's browser automation
 - MCP tooling for controlled execution
 
-Agents operate through **interactive chat prompts**, not custom-written agent code.
+Interaction happens through conversational prompts in a chat interface.
 
-This repository demonstrates three agent roles:
+### Agent Modes
 
-| Agent     | Responsibility |
-|----------|----------------|
-| Planner  | Explores the application and generates a Markdown test plan |
-| Generator| Converts selected test scenarios into Playwright tests |
-| Healer   | Investigates failed tests and attempts to repair them |
+| Mode | Purpose |
+|------|---------|
+| **Planner** | Explores applications and generates test plans in Markdown |
+| **Generator** | Converts test scenarios into Playwright tests |
+| **Healer** | Investigates and fixes failed tests |
+| **General** | Handles running tests and executing commands |
 
-These agents are **modes**, not independent services or binaries.
-
-Reference: https://playwright.dev/docs/test-agents
-
----
-
-## Repository Contents
-
-This repository contains a mix of artifacts:
-
-- Example generated test plans (`.md`)
-- Example generated Playwright test files
-- Screenshots captured during exploration
-- Playwright configuration required for MCP-based execution
-- Documentation and example prompts used during agent workflows
-
-This is **not** a production-ready framework.
+**Learn more:** [Playwright Test Agents Documentation](https://playwright.dev/docs/test-agents)
 
 ---
 
 ## Prerequisites
 
-- Node.js (LTS recommended)
+- Node.js (LTS version)
 - Playwright
-- Visual Studio Code
-- Playwright Test MCP enabled in VS Code
-- Access to a supported LLM via MCP
+- VS Code Insiders (recommended for MCP support, regular VS Code works too)
+- Access to an LLM through MCP (GPT-4, Claude, etc.)
 
 ---
 
-## Installation
+## Installation & Setup
 
 ```bash
+# Install dependencies
 npm install
 npx playwright install
-````
 
-Ensure that Playwright MCP is enabled so agents can:
-
-* launch browsers
-* interact with pages
-* capture screenshots
-* write files into the workspace
-
----
-
-## Recommended Usage Pattern
-
-### What Not to Do
-
-Avoid asking agents to:
-
-* explore the entire application in one prompt
-* generate automation for the full system at once
-
-This usually results in:
-
-* missed scenarios
-* shallow coverage
-* incorrect assumptions
-
----
-
-### What Works Better
-
-Use a **module-by-module approach**.
-
-Treat agents as junior collaborators that need clear boundaries, not as omniscient systems.
-
----
-
-## Step 1: Planner Agent – Create a Test Plan
-
-Use the Planner agent to explore a **specific module or flow**.
-
-### Example Prompt
-
+# Initialize Playwright Agents
+npx playwright init-agents --loop=vscode
 ```
-Navigate to the login module of the application.
+
+**What `init-agents` does:**
+- Installs Playwright Test Agents
+- Configures MCP integration with VS Code
+- Sets up chat interface with agent modes
+
+Open the project in VS Code Insiders to access the chat interface.
+
+---
+
+## Critical: Scope Matters
+
+###  What Doesn't Work Well
+
+- Exploring entire applications at once
+- Generating automation for everything in one go
+- Handling complex flows without context
+
+Results: 30-50% coverage gaps, shallow understanding, incorrect assumptions, weak assertions.
+
+###  What Works Better
+
+**Module-by-module approach.**
+
+Focusing on one module or feature at a time significantly improves results. Coverage can jump from 50-70% to 80-90% with proper scoping.
+
+Treat agents like junior team members needing clear direction and boundaries.
+
+---
+
+## The Workflow
+
+### Step 1: Create Test Plan (Planner Mode)
+
+**Example Prompt:**
+```
+Navigate to the login module.
 Explore all visible elements and user flows.
-Create a detailed test plan covering:
-- positive scenarios
-- negative scenarios
-- edge cases
+Create a detailed test plan covering positive, negative, and edge case scenarios.
 ```
 
-### Output
+**Output:**
+- Markdown test plan with scenarios, steps, and expected results
+- Typical coverage: 50-70%
 
-* A Markdown test plan (`.md`)
-* Includes:
-
-  * module overview
-  * test scenarios
-  * expected results
-
-### Limitations
-
-* Coverage is typically around 50–70%
-* Business rules may be guessed
-* Domain-specific knowledge is not guaranteed
-
-The test plan should be reviewed and refined by a human tester.
+**Important:** Review the plan. Add missing scenarios. Correct assumptions about business logic.
 
 ---
 
-## Step 2: Generator Agent – Create Playwright Tests
+### Step 2: Generate Tests (Generator Mode)
 
-Once a test plan exists:
+Keep the test plan in context and switch to Generator mode.
 
-1. Attach the test plan as context
-2. Select specific scenarios to automate
-3. Switch to the Generator agent
-
-### Example Prompt
-
+**Example Prompt:**
 ```
-Generate Playwright tests for the Product Search scenarios
+Generate Playwright tests for the "Product Search" scenarios
 from the attached test plan.
-Capture locators and screenshots for each step.
+Use proper locators and include assertions.
 ```
 
-### Behavior
+**Output:**
+- Playwright test files with test structure, locators, and basic assertions
 
-* The agent re-executes the flow in a browser
-* Locators are discovered dynamically
-* Playwright test files are generated
-
-### Known Limitations
-
-* Some scenarios may be skipped
-* Assertions may be weak or generic
-* Page Object Model is not assumed by default
-
-If POM-based tests are required:
-
-* attach an existing page object file
-* explicitly instruct the agent to follow that structure
+**For Page Object Model:**
+Attach an existing page object file and explicitly request: "Follow the Page Object Model structure shown in the attached file."
 
 ---
 
-## Step 3: Execute Tests
+### Step 3: Run Tests
 
-Tests can be executed via agent prompts or directly in the terminal.
+**Via General Agent Mode:**
+```
+Run the generated tests in Chromium headed mode
+```
 
+**Via Terminal:**
 ```bash
-npx playwright test --project=chromium
+npx playwright test --project=chromium --headed
 ```
 
-It is expected that:
-
-* some tests will pass
-* some tests will fail
-
-Failures are part of the workflow.
+Some tests will pass, some will fail. This is normal and expected.
 
 ---
 
-## Step 4: Healer Agent – Repair Failed Tests
+### Step 4: Fix Failed Tests (Healer Mode)
 
-The Healer agent focuses on **test failures**, not application defects.
-
-### Example Prompt
-
+**Example Prompt:**
 ```
-One of the generated tests failed.
-Investigate the failure and fix the test.
+The search-with-no-results.spec.ts test failed.
+Investigate and fix the issue.
 ```
 
-### What Healer Can Fix
+**Healer can fix:**
+- Strict mode violations
+- Ambiguous locators
+- Selector indexing issues
+- Minor timing problems
 
-* strict mode violations
-* ambiguous or duplicated locators
-* selector indexing issues
-* minor locator mismatches
+**Healer cannot fix:**
+- Wrong business logic
+- Flawed test strategy
+- Application bugs
 
-### What Healer Cannot Fix
-
-* incorrect business expectations
-* missing assertions
-* flawed test strategy
-* incorrect assumptions in the test plan
-
-Healer assists debugging; it does not replace it.
+This is an iterative conversation requiring follow-up questions and context.
 
 ---
 
-## Human-in-the-Loop Is Mandatory
+## Seed Files for Deep Navigation
 
-Humans are responsible for:
+When testing requires navigating through many pages to reach the target area, create a seed file that automates the initial navigation.
 
-* validating test plans
-* selecting automation candidates
-* supplying business context
-* reviewing generated code
-* defining test strategy
-
-Agents handle execution and generation, not judgment.
+**Usage:**
+1. Write a Playwright test that navigates to the target area
+2. Attach the seed file when prompting Planner
+3. Specify: "Use the attached seed file to navigate to [target area], then create a test plan for [module]"
 
 ---
 
-## Why This Repository Exists
+## Human Responsibilities
 
-This project demonstrates:
+**Still required:**
+- Validating test plans
+- Deciding what to automate
+- Providing business context
+- Reviewing generated code
+- Defining test strategy
 
-* accelerated test planning
-* automated exploratory navigation
-* faster automation bootstrapping
-* assisted repair of obvious test failures
+**What agents handle:**
+- Tedious exploration
+- Generating test skeletons
+- Finding locators
+- Creating basic structure
+- Fixing obvious technical issues
 
-It does not aim to:
+This is delegation, not abdication.
 
-* replace test engineers
-* provide zero-effort automation
-* act as a production framework template
+---
+
+## Improving Results
+
+### Provide Context
+
+Attach relevant files:
+- Business requirements (for understanding valid inputs, error messages)
+- Existing page objects (to follow framework patterns)
+- API documentation
+- Seed files
+
+### Write Clear Prompts
+
+Instead of: "Test the search feature"
+
+Use: "Create tests for product search covering: exact matches, partial searches, no results, special characters, and case sensitivity. Verify results display correctly."
+
+### Iterate
+
+This is a conversation:
+1. Start with a basic prompt
+2. Review output
+3. Request corrections
+4. Provide more context
+5. Ask for specific changes
+
+---
+
+## What This Demonstrates
+
+**Shows how to:**
+- Accelerate test planning
+- Automate exploratory navigation
+- Bootstrap automation faster
+- Fix obvious failures with assistance
+
+**Does NOT:**
+- Replace test engineers
+- Provide zero-effort automation
+- Work as production framework out-of-the-box
+- Make testing decisions
 
 ---
 
 ## Key Takeaway
 
-Playwright Test Agents reduce **busy thinking**, not critical thinking.
+Playwright Test Agents reduce busy work, not critical thinking.
 
-Used as assistants, they are effective.
-Used as decision-makers, they fail.
+Used as assistants: incredibly valuable.
+Used as decision-makers: disappointing.
 
 ---
 
-## References
+## Resources
 
-* Playwright Test Agents documentation
-  [https://playwright.dev/docs/test-agents](https://playwright.dev/docs/test-agents)
-
-```
-```
+- [Playwright Test Agents Documentation](https://playwright.dev/docs/test-agents)
+- [Playwright Best Practices](https://playwright.dev/docs/best-practices)
